@@ -723,24 +723,75 @@
           text: m.text
         }));
 
-        const res = await fetch('/api/generate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            prompt: promptText,
-            history: recentHistory,
-            currentCode: AppState.activeCode
-          })
-        });
+        let rawResponse = '';
+        let modelUsed = 'gemini-3.8-flash';
+        let key = localStorage.getItem('hamzaad_api_key') || '';
 
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          throw new Error(err.error || `Server returned ${res.status}`);
+        try {
+          const res = await fetch('/api/generate', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-gemini-api-key': key
+            },
+            body: JSON.stringify({
+              prompt: promptText,
+              history: recentHistory,
+              currentCode: AppState.activeCode,
+              apiKey: key || undefined
+            })
+          });
+
+          if (res.ok) {
+            const data = await res.json();
+            rawResponse = data.response;
+            modelUsed = data.modelUsed || 'gemini-3.8-flash';
+          } else if (res.status === 404 || res.status === 405) {
+            throw new Error('FALLBACK_CLIENT');
+          } else {
+            const errJson = await res.json().catch(() => ({}));
+            if (errJson.error && errJson.error.includes('GEMINI_API_KEY')) {
+              throw new Error('FALLBACK_CLIENT');
+            }
+            throw new Error(errJson.error || `Server returned ${res.status}`);
+          }
+        } catch (serverErr) {
+          if (serverErr.message !== 'FALLBACK_CLIENT') {
+            console.warn('Backend unavailable, falling back to direct client API:', serverErr.message);
+          }
+
+          if (!key) {
+            key = window.prompt('To run on this published URL (Vercel / GitHub Pages), enter your free Google AI Studio API key:\n(Saved in your browser for this URL)');
+            if (key && key.trim()) {
+              key = key.trim();
+              localStorage.setItem('hamzaad_api_key', key);
+            } else {
+              throw new Error('Please enter a Google AI Studio API key or configure GEMINI_API_KEY in your Vercel Project Settings.');
+            }
+          }
+
+          // Direct call to Google AI Studio API
+          const directUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${key}`;
+          const directRes = await fetch(directUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{
+                role: 'user',
+                parts: [{ text: `${CONFIG.SYSTEM_DIRECTIVE || ''}\n\n[USER INSTRUCTION]:\n${promptText}` }]
+              }],
+              generationConfig: { temperature: 0.7, topP: 0.95 }
+            })
+          });
+
+          if (!directRes.ok) {
+            const errData = await directRes.json().catch(() => ({}));
+            throw new Error(errData.error?.message || `Google API error ${directRes.status}`);
+          }
+
+          const directData = await directRes.json();
+          rawResponse = directData.candidates?.[0]?.content?.parts?.map(p => p.text).join('\n') || '';
         }
-
-        const data = await res.json();
-        const rawResponse = data.response;
-        const modelUsed = data.modelUsed || 'gemini-3.8-flash';
 
         const { code, text } = extractCode(rawResponse);
 

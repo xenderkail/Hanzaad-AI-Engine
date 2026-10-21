@@ -32,16 +32,34 @@ import {
   Gamepad2,
   TrendingUp,
   FileCode,
-  SquareCode,
   StopCircle,
-  PlusCircle,
   Calendar,
-  SlidersHorizontal,
-  RefreshCw
+  RefreshCw,
+  KeyRound,
+  Info
 } from 'lucide-react';
 
 const ACTIVE_CODE_KEY = 'hamzaad_active_code';
 const CHAT_HISTORY_KEY = 'hamzaad_chat_history';
+const CUSTOM_KEY_STORAGE = 'hamzaad_api_key';
+
+const SYSTEM_INSTRUCTION = `You are Hamzaad, an elite Autonomous AI Application Engine & Full-Stack Architect.
+Your mission is to synthesize complete, high-performance, single-file HTML applications that run natively in an iframe sandbox.
+
+MANDATORY RULES:
+1. Always start your response with a concise, polite conversational overview (1-2 sentences) explaining what you designed, built, or updated.
+2. IMMEDIATELY follow with EXACTLY ONE complete single-file HTML application enclosed strictly in a \`\`\`html ... \`\`\` markdown code block.
+   - If the user sends a greeting or general inquiry (e.g. "hello", "hi", "help"), synthesize an engaging, interactive "Hamzaad Interactive Welcome & Feature Showcase" app with live cards, charts, and interactive demo buttons.
+   - If the user asks for a specific app or modification, synthesize the complete, fully-functional single-file HTML application.
+3. The generated HTML application MUST be 100% self-contained and ready to execute immediately:
+   - Must include <!DOCTYPE html>, <html lang="en">, <head>, and <body>.
+   - Include Tailwind CSS CDN: <script src="https://cdn.tailwindcss.com"></script>
+   - Include Chart.js CDN when charts, statistics, or analytics are relevant: <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+   - Include Lucide Icons CDN when icons are needed: <script src="https://unpkg.com/lucide@latest"></script> followed by lucide.createIcons() call.
+   - Include complete interactive JavaScript logic (event listeners, state handling, realistic mockup data, calculations).
+   - NEVER output placeholder comments like "<!-- rest of code here -->" or "// TODO". All features, views, and modals must be fully implemented.
+   - UI must be exceptionally polished: dark/light theme, modern cards, borders, rounded corners, clean micro-interactions, responsive layout.
+4. Output no other code blocks after the html block.`;
 
 const DEFAULT_SEED_APP = `<!DOCTYPE html>
 <html lang="en" class="h-full bg-slate-950 text-slate-100">
@@ -69,7 +87,7 @@ const DEFAULT_SEED_APP = `<!DOCTYPE html>
       <div class="flex items-center gap-2">
         <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
           <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-          AI Studio In-built Key Active
+          Engine Live &amp; Ready
         </span>
       </div>
     </header>
@@ -86,11 +104,11 @@ const DEFAULT_SEED_APP = `<!DOCTYPE html>
       </div>
       <div class="p-4 rounded-xl bg-slate-900 border border-slate-800 shadow">
         <div class="flex items-center justify-between text-slate-400 text-xs">
-          <span>Backend Auth</span>
+          <span>Deployment Adapt</span>
           <i data-lucide="shield-check" class="w-4 h-4 text-indigo-400"></i>
         </div>
-        <p class="text-2xl font-bold text-white mt-2">Zero Config</p>
-        <span class="text-xs text-indigo-400 font-medium">Auto Injected Secrets</span>
+        <p class="text-2xl font-bold text-white mt-2">Dual Engine</p>
+        <span class="text-xs text-indigo-400 font-medium">Vercel &amp; GitHub Ready</span>
       </div>
       <div class="p-4 rounded-xl bg-slate-900 border border-slate-800 shadow">
         <div class="flex items-center justify-between text-slate-400 text-xs">
@@ -98,7 +116,7 @@ const DEFAULT_SEED_APP = `<!DOCTYPE html>
           <i data-lucide="layers" class="w-4 h-4 text-teal-400"></i>
         </div>
         <p class="text-2xl font-bold text-white mt-2">Gemini 3.8</p>
-        <span class="text-xs text-teal-400 font-medium">Automatic Failover</span>
+        <span class="text-xs text-teal-400 font-medium">Flash Cascading</span>
       </div>
       <div class="p-4 rounded-xl bg-slate-900 border border-slate-800 shadow">
         <div class="flex items-center justify-between text-slate-400 text-xs">
@@ -106,7 +124,7 @@ const DEFAULT_SEED_APP = `<!DOCTYPE html>
           <i data-lucide="gauge" class="w-4 h-4 text-emerald-400"></i>
         </div>
         <p class="text-2xl font-bold text-white mt-2">8ms</p>
-        <span class="text-xs text-emerald-400 font-medium">Isolated DOM execution</span>
+        <span class="text-xs text-emerald-400 font-medium">Direct DOM Injection</span>
       </div>
     </div>
 
@@ -131,7 +149,7 @@ const DEFAULT_SEED_APP = `<!DOCTYPE html>
             </li>
             <li class="flex items-center gap-2">
               <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400 shrink-0"></i>
-              <span>Tailwind CSS & Chart.js Pre-Configured</span>
+              <span>Tailwind CSS &amp; Chart.js Pre-Configured</span>
             </li>
             <li class="flex items-center gap-2">
               <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400 shrink-0"></i>
@@ -244,7 +262,7 @@ const STARTER_PRESETS = [
 ];
 
 export default function App() {
-  // State
+  // View & Workspace State
   const [activeTab, setActiveTab] = useState<'canvas' | 'code'>('canvas');
   const [viewport, setViewport] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
   const [activeCode, setActiveCode] = useState<string>(DEFAULT_SEED_APP);
@@ -252,16 +270,29 @@ export default function App() {
   const [appTitle, setAppTitle] = useState('Hamzaad Pulse Analytics');
   const [fileSizeKb, setFileSizeKb] = useState('14.8');
 
-  // Backend / Model Status
+  // Backend / Deployment Environment Detection
   const [backendStatus, setBackendStatus] = useState<{
     hasApiKey: boolean;
     models: string[];
     defaultModel: string;
+    isStaticHost?: boolean;
+    platform?: string;
   }>({
     hasApiKey: true,
-    models: ['gemini-3.8-flash', 'gemini-flash-latest', 'gemini-3.1-flash-lite', 'gemini-2.5-flash'],
+    models: ['gemini-3.8-flash', 'gemini-flash-latest', 'gemini-3.1-flash-lite'],
     defaultModel: 'gemini-3.8-flash'
   });
+
+  // Client Key State (for Vercel without env var, GitHub Pages, or custom key)
+  const [customKey, setCustomKey] = useState<string>(() => {
+    try {
+      return localStorage.getItem(CUSTOM_KEY_STORAGE) || '';
+    } catch {
+      return '';
+    }
+  });
+  const [isKeyModalOpen, setIsKeyModalOpen] = useState(false);
+  const [tempKeyInput, setTempKeyInput] = useState('');
 
   // Chat State
   const [messages, setMessages] = useState<ChatMessage[]>(() => {
@@ -278,7 +309,7 @@ export default function App() {
       {
         id: 'welcome',
         role: 'assistant',
-        text: `Welcome to **Hamzaad** — Autonomous AI Application Engine & Live Studio.\n\nAll AI requests are automatically powered by **AI Studio In-built Keys** — no manual key setup or vault required!\n\n✨ **What would you like to build?** Choose a starter template or describe any application below.`,
+        text: `Welcome to **Hamzaad** — Autonomous AI Application Engine & Live Studio.\n\n✨ **Dual-Deployment Ready:** Runs natively in AI Studio, Vercel Serverless, and GitHub Pages.\n\nChoose a starter blueprint or describe any application below to synthesize!`,
         suggestions: [
           'Create a SaaS Analytics Hub with Chart.js',
           'Build a Kanban Workflow Board',
@@ -300,17 +331,26 @@ export default function App() {
   const chatBottomRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Check backend status on mount
+  // Check backend status on mount to detect environment
   useEffect(() => {
     fetch('/api/status')
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) throw new Error(`Status ${res.status}`);
+        return res.json();
+      })
       .then(data => {
-        if (data.status === 'ready') {
+        if (data && data.status === 'ready') {
           setBackendStatus(data);
         }
       })
-      .catch(err => {
-        console.warn('Backend status check failed:', err);
+      .catch(() => {
+        // When deployed to GitHub Pages or static host where /api is not present
+        setBackendStatus({
+          hasApiKey: false,
+          models: ['gemini-3.8-flash', 'gemini-flash-latest', 'gemini-3.1-flash-lite'],
+          defaultModel: 'gemini-3.8-flash',
+          isStaticHost: true
+        });
       });
 
     // Load persisted active code
@@ -385,6 +425,22 @@ export default function App() {
     }, 3500);
   };
 
+  const handleSaveCustomKey = () => {
+    const cleaned = tempKeyInput.trim();
+    setCustomKey(cleaned);
+    try {
+      if (cleaned) {
+        localStorage.setItem(CUSTOM_KEY_STORAGE, cleaned);
+      } else {
+        localStorage.removeItem(CUSTOM_KEY_STORAGE);
+      }
+    } catch {
+      // ignore
+    }
+    setIsKeyModalOpen(false);
+    showToast(cleaned ? 'API key saved for this domain!' : 'Custom key removed', 'success');
+  };
+
   // Extract HTML from response
   const extractCode = (raw: string): { code: string | null; text: string } => {
     const regex = /```(?:html)?\s*([\s\S]*?)```/i;
@@ -400,7 +456,78 @@ export default function App() {
     return { code: null, text: raw };
   };
 
-  // Generate / Refine Application via Server
+  // Direct client-side Gemini API fallback (used on GitHub Pages or static hosts)
+  const callDirectClientGemini = async (promptToSend: string, recentHistory: any[], signal: AbortSignal) => {
+    const effectiveKey = customKey.trim();
+    if (!effectiveKey) {
+      setIsKeyModalOpen(true);
+      throw new Error('On this published URL (Vercel / GitHub Pages), please configure GEMINI_API_KEY or enter your Google AI Studio API key.');
+    }
+
+    const fallbackModels = ['gemini-3.8-flash', 'gemini-flash-latest', 'gemini-3.1-flash-lite'];
+    const parts: string[] = [];
+
+    parts.push(SYSTEM_INSTRUCTION);
+
+    if (activeCode && activeCode.length > 50) {
+      parts.push(`[CURRENT ACTIVE APPLICATION CODE IN CANVAS]:\n\`\`\`html\n${activeCode}\n\`\`\``);
+    }
+
+    if (Array.isArray(recentHistory)) {
+      for (const h of recentHistory) {
+        if (h.text && !h.text.startsWith('Welcome to **Hamzaad**')) {
+          parts.push(`${h.role.toUpperCase()}: ${h.text}`);
+        }
+      }
+    }
+
+    parts.push(`USER INSTRUCTION: ${promptToSend}`);
+
+    const contentsPayload = [
+      {
+        role: 'user',
+        parts: [{ text: parts.join('\n\n') }]
+      }
+    ];
+
+    let lastError: Error | null = null;
+
+    for (const model of fallbackModels) {
+      try {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${effectiveKey}`;
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: contentsPayload,
+            generationConfig: {
+              temperature: 0.7,
+              topP: 0.95
+            }
+          }),
+          signal
+        });
+
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.error?.message || `API error ${res.status}`);
+        }
+
+        const data = await res.json();
+        const text = data.candidates?.[0]?.content?.parts?.map((p: any) => p.text).join('\n');
+        if (text) {
+          return { response: text, modelUsed: model };
+        }
+      } catch (err: any) {
+        lastError = err;
+        console.warn(`[Client Direct Fallback] Error on ${model}:`, err.message);
+      }
+    }
+
+    throw lastError || new Error('Failed to generate with direct Google AI Studio API.');
+  };
+
+  // Main Prompt Dispatcher (Adaptive Dual-Engine: Server Proxy with Client Direct Fallback)
   const handleSend = async (customPrompt?: string) => {
     const promptToSend = (customPrompt || inputPrompt).trim();
     if (!promptToSend || isGenerating) return;
@@ -415,11 +542,10 @@ export default function App() {
     setMessages(prev => [...prev, userMsg]);
     if (!customPrompt) setInputPrompt('');
     setIsGenerating(true);
-    setGenerationStage('Consulting Gemini 3.8 Flash with in-built AI Studio credentials...');
+    setGenerationStage('Connecting to Gemini 3.8 Flash...');
 
-    // Progress stage simulation
     const stage1 = setTimeout(() => {
-      setGenerationStage('Architecting UI, Tailwind styling, and Chart.js telemetry...');
+      setGenerationStage('Architecting UI, Tailwind layout, and Chart.js telemetry...');
     }, 1800);
     const stage2 = setTimeout(() => {
       setGenerationStage('Compiling self-contained single-file sandbox bundle...');
@@ -429,34 +555,67 @@ export default function App() {
     abortControllerRef.current = controller;
 
     try {
-      // Provide conversational history context for seamless iteration
       const recentHistory = messages.slice(-4).map(m => ({
         role: m.role,
         text: m.text
       }));
 
-      const res = await fetch('/api/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          prompt: promptToSend,
-          history: recentHistory,
-          currentCode: activeCode
-        }),
-        signal: controller.signal
-      });
+      let rawText = '';
+      let modelUsed = 'gemini-3.8-flash';
+
+      let useClientDirect = backendStatus.isStaticHost;
+
+      if (!useClientDirect) {
+        try {
+          const res = await fetch('/api/generate', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-gemini-api-key': customKey || ''
+            },
+            body: JSON.stringify({
+              prompt: promptToSend,
+              history: recentHistory,
+              currentCode: activeCode,
+              apiKey: customKey || undefined
+            }),
+            signal: controller.signal
+          });
+
+          // Check if serverless endpoint answered
+          if (res.ok) {
+            const data = await res.json();
+            rawText = data.response || '';
+            modelUsed = data.modelUsed || 'gemini-3.8-flash';
+          } else if (res.status === 404 || res.status === 405) {
+            // Static host (e.g. GitHub Pages) or missing route on Vercel: switch to direct client call
+            useClientDirect = true;
+          } else {
+            const errJson = await res.json().catch(() => ({}));
+            // If missing key error from server, check if client can supply it
+            if (errJson.error && errJson.error.includes('GEMINI_API_KEY')) {
+              useClientDirect = true;
+            } else {
+              throw new Error(errJson.error || `Server responded with status ${res.status}`);
+            }
+          }
+        } catch (fetchErr: any) {
+          if (fetchErr.name === 'AbortError') throw fetchErr;
+          console.warn('Backend fetch failed, attempting client fallback:', fetchErr.message);
+          useClientDirect = true;
+        }
+      }
+
+      // If backend was not reachable or missing key on deployed URL, run direct fallback
+      if (useClientDirect && !rawText) {
+        setGenerationStage('Running direct Google AI Studio engine...');
+        const result = await callDirectClientGemini(promptToSend, recentHistory, controller.signal);
+        rawText = result.response;
+        modelUsed = result.modelUsed;
+      }
 
       clearTimeout(stage1);
       clearTimeout(stage2);
-
-      if (!res.ok) {
-        const errJson = await res.json().catch(() => ({}));
-        throw new Error(errJson.error || `Server responded with status ${res.status}`);
-      }
-
-      const data = await res.json();
-      const rawText = data.response || '';
-      const modelUsed = data.modelUsed || 'gemini-3.8-flash';
 
       const { code, text } = extractCode(rawText);
 
@@ -464,7 +623,6 @@ export default function App() {
         setActiveCode(code);
         setEditorValue(code);
 
-        // Generate tailored follow-up suggestion chips
         const followUps = [
           'Add Dark Mode / Light Mode toggle',
           'Add Search & Filter Controls',
@@ -514,7 +672,7 @@ export default function App() {
           {
             id: 'err-' + Date.now(),
             role: 'assistant',
-            text: `⚠️ **Generation Error**: ${error.message}\n\nPlease try again or refine your prompt.`,
+            text: `⚠️ **Generation Error**: ${error.message}\n\n*Tip:* If you just published to Vercel, set \`GEMINI_API_KEY\` in your Vercel Project Settings > Environment Variables, or click the **API Key** button in the top bar.`,
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
           }
         ]);
@@ -600,6 +758,14 @@ export default function App() {
     }
   };
 
+  // Determine active key status label
+  const hasActiveKey = backendStatus.hasApiKey || !!customKey;
+  const statusLabel = backendStatus.hasApiKey
+    ? 'AI Studio / Vercel Key Active'
+    : customKey
+    ? 'Custom API Key Active'
+    : 'No API Key Configured';
+
   return (
     <div className="h-screen w-screen flex flex-col overflow-hidden bg-slate-950 text-slate-100 font-sans select-none antialiased">
       
@@ -616,19 +782,19 @@ export default function App() {
                 HAMZAAD
               </h1>
               <span className="text-[10px] uppercase font-semibold tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-                v2.5 Autonomous Engine
+                v2.5 Autonomous Studio
               </span>
             </div>
             <p className="text-[11px] text-slate-400 hidden sm:block">AI Application Engine &amp; Live Preview Canvas Studio</p>
           </div>
         </div>
 
-        {/* Central In-Built Key & Cascade Status */}
+        {/* Central Key & Cascade Status */}
         <div className="hidden md:flex items-center gap-2.5 bg-slate-950/80 border border-slate-800 rounded-lg px-3 py-1.5 text-xs">
-          <span className="flex items-center gap-1.5 text-emerald-400 font-medium">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-            <span>AI Studio In-built Key Active</span>
+          <span className={`flex items-center gap-1.5 font-medium ${hasActiveKey ? 'text-emerald-400' : 'text-amber-400'}`}>
+            <span className={`w-2 h-2 rounded-full ${hasActiveKey ? 'bg-emerald-400 animate-ping' : 'bg-amber-400'}`}></span>
+            <ShieldCheck className="w-3.5 h-3.5" />
+            <span>{statusLabel}</span>
           </span>
           <span className="text-slate-700">|</span>
           <span className="flex items-center gap-1.5 text-slate-400">
@@ -640,6 +806,25 @@ export default function App() {
 
         {/* Header Actions */}
         <div className="flex items-center gap-2">
+          {/* Key Config Button (Visible or clickable to change/verify key on deployed URLs) */}
+          <button
+            onClick={() => {
+              setTempKeyInput(customKey);
+              setIsKeyModalOpen(true);
+            }}
+            title="Configure Gemini API Key for Vercel / GitHub Pages"
+            className={`text-xs px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 transition font-medium border ${
+              !hasActiveKey
+                ? 'bg-amber-500/20 text-amber-300 border-amber-500/50 animate-pulse'
+                : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700'
+            }`}
+          >
+            <KeyRound className="w-3.5 h-3.5 text-amber-400" />
+            <span className="hidden sm:inline">
+              {!hasActiveKey ? 'Set API Key' : 'API Key'}
+            </span>
+          </button>
+
           {/* Templates Trigger */}
           <button
             onClick={() => setIsStartersOpen(true)}
@@ -705,7 +890,7 @@ export default function App() {
                   >
                     <div className="whitespace-pre-wrap">{msg.text}</div>
 
-                    {/* CODE SUPPRESSION BADGE (Replaces thousands of lines of raw HTML) */}
+                    {/* CODE SUPPRESSION BADGE */}
                     {msg.hasGeneratedCode && (
                       <div className="mt-3 pt-3 border-t border-slate-700/60 flex flex-col gap-2">
                         <div className="flex items-center gap-1.5 text-emerald-400 font-semibold text-xs">
@@ -1053,6 +1238,103 @@ export default function App() {
 
         </section>
       </div>
+
+      {/* MODAL: API KEY SETUP (FOR VERCEL / GITHUB DEPLOYMENTS) */}
+      {isKeyModalOpen && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+            <div className="px-5 py-4 border-b border-slate-800 flex items-center justify-between bg-slate-950/50">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center">
+                  <KeyRound className="w-4 h-4" />
+                </div>
+                <div>
+                  <h2 className="text-sm font-bold text-white">Gemini API Key Configuration</h2>
+                  <p className="text-xs text-slate-400">For Vercel Deployments &amp; GitHub Pages</p>
+                </div>
+              </div>
+              <button onClick={() => setIsKeyModalOpen(false)} className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4 text-xs">
+              <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
+                <div className="flex items-center gap-2 text-emerald-400 font-semibold">
+                  <Info className="w-4 h-4 shrink-0" />
+                  <span>How to connect your key on published URLs:</span>
+                </div>
+                <ul className="text-slate-400 space-y-1.5 list-disc pl-4 text-[11px] leading-relaxed">
+                  <li>
+                    <strong className="text-slate-200">On Vercel (Recommended):</strong> Add <code className="text-emerald-300 bg-black/40 px-1 py-0.5 rounded font-mono">GEMINI_API_KEY</code> in your Vercel Project Settings &gt; Environment Variables.
+                  </li>
+                  <li>
+                    <strong className="text-slate-200">On GitHub Pages or Direct Browser:</strong> Paste your free API key below. It is stored safely in your browser's local storage for this domain.
+                  </li>
+                </ul>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                  Google AI Studio API Key:
+                </label>
+                <input
+                  type="password"
+                  value={tempKeyInput}
+                  onChange={e => setTempKeyInput(e.target.value)}
+                  placeholder="AIzaSy..."
+                  className="w-full bg-slate-950 border border-slate-700/80 rounded-xl px-3 py-2.5 text-xs font-mono text-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                />
+              </div>
+
+              <div className="flex items-center justify-between text-[11px] text-slate-400">
+                <span>Don't have a key?</span>
+                <a
+                  href="https://aistudio.google.com/app/apikey"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-emerald-400 underline hover:text-emerald-300 flex items-center gap-1"
+                >
+                  <span>Get free key from Google AI Studio</span>
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+              </div>
+            </div>
+
+            <div className="px-5 py-3.5 bg-slate-950/80 border-t border-slate-800 flex items-center justify-between">
+              <button
+                onClick={() => {
+                  setTempKeyInput('');
+                  setCustomKey('');
+                  try {
+                    localStorage.removeItem(CUSTOM_KEY_STORAGE);
+                  } catch {}
+                  setIsKeyModalOpen(false);
+                  showToast('Key cleared', 'info');
+                }}
+                className="text-xs text-red-400 hover:text-red-300 transition"
+              >
+                Clear Key
+              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setIsKeyModalOpen(false)}
+                  className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveCustomKey}
+                  className="px-4 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-xs flex items-center gap-1.5 transition shadow"
+                >
+                  <Check className="w-3.5 h-3.5" />
+                  <span>Save Key</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* MODAL: STARTERS / BLUEPRINTS */}
       {isStartersOpen && (

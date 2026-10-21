@@ -119,20 +119,31 @@ async function startServer() {
     });
   });
 
-  // Generation endpoint using AI Studio in-built keys
+  // Generation endpoint using AI Studio in-built keys (or client-provided key)
   app.post('/api/generate', async (req: Request, res: Response) => {
     try {
-      const { prompt, history, currentCode } = req.body;
+      const { prompt, history, currentCode, apiKey: clientKey } = req.body;
 
       if (!prompt || typeof prompt !== 'string') {
         return res.status(400).json({ error: 'Prompt is required.' });
       }
 
-      if (!apiKey) {
-        return res.status(500).json({
-          error: 'GEMINI_API_KEY is not configured in the AI Studio environment.'
+      const effectiveKey = process.env.GEMINI_API_KEY || clientKey || (req.headers['x-gemini-api-key'] as string);
+
+      if (!effectiveKey) {
+        return res.status(400).json({
+          error: 'GEMINI_API_KEY is not configured in the environment. Please add GEMINI_API_KEY to your environment variables or enter your key.'
         });
       }
+
+      const client = new GoogleGenAI({
+        apiKey: effectiveKey,
+        httpOptions: {
+          headers: {
+            'User-Agent': 'aistudio-build',
+          },
+        },
+      });
 
       // Build well-formed, alternating conversation turns
       const contents = buildGeminiContents(prompt, history, currentCode);
@@ -145,7 +156,7 @@ async function startServer() {
       for (const modelCandidate of MODEL_CASCADE) {
         try {
           modelUsed = modelCandidate;
-          const response = await ai.models.generateContent({
+          const response = await client.models.generateContent({
             model: modelCandidate,
             contents: contents,
             config: {
