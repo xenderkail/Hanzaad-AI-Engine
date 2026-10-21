@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-950 text-slate-100">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hamzaad | Autonomous AI Application Engine & Live Canvas Studio</title>
+  <meta name="description" content="Autonomous AI Application Engine with real-time live preview canvas, code inspector, dynamic model cascading, and zero-config in-built AI Studio keys." />
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0fdf4',
+              100: '#dcfce7',
+              400: '#4ade80',
+              500: '#22c55e',
+              600: '#16a34a',
+              700: '#15803d',
+            },
+            accent: {
+              400: '#818cf8',
+              500: '#6366f1',
+              600: '#4f46e5',
+            }
+          },
+          fontFamily: {
+            mono: ['JetBrains Mono', 'Fira Code', 'Menlo', 'Monaco', 'Courier New', 'monospace'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <style>
+    /* Custom Scrollbars */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.6);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(51, 65, 85, 0.8);
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(100, 116, 139, 1);
+    }
+
+    .device-container {
+      transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    @keyframes pulse-ring {
+      0% { transform: scale(0.95); opacity: 0.8; }
+      50% { transform: scale(1.15); opacity: 0.3; }
+      100% { transform: scale(0.95); opacity: 0.8; }
+    }
+    .pulse-dot {
+      animation: pulse-ring 2.5s infinite ease-in-out;
+    }
+  </style>
+</head>
+<body class="h-full flex flex-col overflow-hidden bg-slate-950 font-sans select-none antialiased">
+
+  <!-- TOP HEADER -->
+  <header class="h-14 border-b border-slate-800/80 bg-slate-900/90 backdrop-blur px-4 flex items-center justify-between z-20 shrink-0">
+    <div class="flex items-center gap-3">
+      <div class="relative flex items-center justify-center w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-500 via-teal-500 to-indigo-600 shadow-lg shadow-emerald-500/20">
+        <i data-lucide="sparkles" class="w-5 h-5 text-white"></i>
+        <span class="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-slate-900 pulse-dot"></span>
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <h1 class="text-base font-bold tracking-tight bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
+            HAMZAAD
+          </h1>
+          <span class="text-[10px] uppercase font-semibold tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+            v2.5 Autonomous Studio
+          </span>
+        </div>
+        <p class="text-[11px] text-slate-400 hidden sm:block">AI Application Engine &amp; Live Preview Canvas Studio</p>
+      </div>
+    </div>
+
+    <!-- Central Status / In-built key info -->
+    <div class="hidden md:flex items-center gap-2.5 bg-slate-950/80 border border-slate-800 rounded-lg px-3 py-1.5 text-xs">
+      <span class="flex items-center gap-1.5 text-emerald-400 font-medium">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+        <i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-400"></i>
+        <span id="api-status-label">AI Studio In-built Key Active</span>
+      </span>
+      <span class="text-slate-700">|</span>
+      <span class="flex items-center gap-1.5 text-slate-400">
+        <i data-lucide="layers" class="w-3.5 h-3.5 text-indigo-400"></i>
+        <span>Cascade:</span>
+        <span id="active-model-badge" class="font-mono text-indigo-300 font-medium">gemini-3.8-flash</span>
+      </span>
+    </div>
+
+    <!-- Header Actions -->
+    <div class="flex items-center gap-2">
+      <!-- Templates -->
+      <button id="btn-open-starters" class="text-xs px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 flex items-center gap-1.5 transition font-medium">
+        <i data-lucide="zap" class="w-3.5 h-3.5 text-amber-400"></i>
+        <span class="hidden sm:inline">Templates</span>
+      </button>
+
+      <!-- Save Code -->
+      <button id="btn-header-save" class="text-xs px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-medium flex items-center gap-1.5 transition shadow-sm">
+        <i data-lucide="download" class="w-3.5 h-3.5"></i>
+        <span class="hidden sm:inline">Export (.html)</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN SPLIT WORKSPACE -->
+  <div class="flex-1 flex overflow-hidden relative">
+
+    <!-- PANEL 1: CHAT COPILOT (~42% width) -->
+    <section id="chat-panel" class="w-full md:w-[42%] flex flex-col bg-slate-900 border-r border-slate-800 z-10 shrink-0 select-text">
+      <!-- Copilot Bar -->
+      <div class="h-10 px-4 border-b border-slate-800/80 bg-slate-900/60 flex items-center justify-between text-xs text-slate-400 shrink-0">
+        <div class="flex items-center gap-2">
+          <i data-lucide="bot" class="w-4 h-4 text-emerald-400"></i>
+          <span class="font-semibold text-slate-200">Autonomous Prompt Copilot</span>
+          <span id="conversation-status" class="text-[10px] text-emerald-400/90 font-mono px-2 py-0.5 rounded-full bg-emerald-500/10">Ready</span>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <button id="btn-clear-chat" title="Clear Chat History" class="p-1 hover:bg-slate-800 rounded text-slate-400 hover:text-red-400 transition">
+            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Chat History Container -->
+      <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-4">
+        <!-- Dynamic chat messages -->
+      </div>
+
+      <!-- Live Synthesis Indicator -->
+      <div id="synthesis-banner" class="hidden px-4 py-2.5 bg-indigo-950/70 border-t border-indigo-800/50 text-indigo-200 text-xs flex items-center justify-between shrink-0 animate-pulse">
+        <div class="flex items-center gap-2">
+          <i data-lucide="refresh-cw" class="w-3.5 h-3.5 text-emerald-400 animate-spin"></i>
+          <span id="synthesis-banner-text">Synthesizing application with Gemini...</span>
+        </div>
+      </div>
+
+      <!-- Input Area -->
+      <div class="p-3 border-t border-slate-800 bg-slate-950/80 shrink-0">
+        <!-- Quick Blueprint Chips -->
+        <div class="flex items-center gap-1.5 overflow-x-auto pb-2 scrollbar-none text-[11px]">
+          <span class="text-slate-500 text-[10px] uppercase font-semibold shrink-0">Ideas:</span>
+          <button onclick="injectPrompt('Build a high-performance Enterprise SaaS Analytics Dashboard using Tailwind CSS and Chart.js with conversion funnels and transaction filters.')" class="shrink-0 px-2.5 py-1 rounded-full bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 transition">
+            📊 SaaS Dashboard
+          </button>
+          <button onclick="injectPrompt('Build an Agile Kanban Board with Tailwind CSS supporting Backlog, In Progress, Review, Done, priority tags, and task points.')" class="shrink-0 px-2.5 py-1 rounded-full bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 transition">
+            ⚡ Kanban Board
+          </button>
+          <button onclick="injectPrompt('Build a Retro Cyberpunk Space Shooter game in HTML5 Canvas and Tailwind CSS with laser sounds and high scores.')" class="shrink-0 px-2.5 py-1 rounded-full bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 transition">
+            🎮 Arcade Game
+          </button>
+          <button onclick="injectPrompt('Build a Real-Time Crypto Portfolio Simulator with Tailwind CSS, Chart.js donut allocation, and live randomized tickers.')" class="shrink-0 px-2.5 py-1 rounded-full bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 transition">
+            📈 Crypto Portfolio
+          </button>
+        </div>
+
+        <form id="chat-form" class="relative">
+          <textarea
+            id="chat-input"
+            rows="3"
+            placeholder="Describe the application to build (e.g. 'Build an interactive Sales Funnel &amp; Lead Scoring Simulator with Tailwind CSS and Chart.js')... Enter sends, Shift+Enter newline"
+            class="w-full bg-slate-900 text-slate-100 placeholder-slate-500 text-xs sm:text-sm rounded-xl p-3 pb-11 border border-slate-700/80 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 resize-none font-sans"
+          ></textarea>
+
+          <div class="absolute bottom-2.5 left-3 right-3 flex items-center justify-between pointer-events-none">
+            <div class="flex items-center gap-1.5 pointer-events-auto text-[11px] text-slate-500">
+              <span class="flex items-center gap-1">
+                <i data-lucide="corner-down-left" class="w-3 h-3 text-slate-400"></i> Enter sends
+              </span>
+              <span class="hidden sm:inline text-slate-600">•</span>
+              <span class="hidden sm:inline">Shift+Enter newline</span>
+            </div>
+
+            <div class="flex items-center gap-2 pointer-events-auto">
+              <button
+                type="submit"
+                id="btn-send-message"
+                class="px-3.5 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 disabled:opacity-40 disabled:hover:bg-emerald-500 text-slate-950 font-semibold text-xs flex items-center gap-1.5 transition shadow-md shadow-emerald-500/20"
+              >
+                <span>Send</span>
+                <i data-lucide="send" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- RESIZER SPLITTER -->
+    <div id="drag-resizer" class="hidden md:flex w-1 bg-slate-800 hover:bg-emerald-500/50 transition cursor-col-resize items-center justify-center z-10"></div>
+
+    <!-- PANEL 2: LIVE CANVAS & CODE INSPECTOR (~58% width) -->
+    <section id="canvas-panel" class="flex-1 flex flex-col bg-slate-950 overflow-hidden">
+      
+      <!-- Panel 2 Header -->
+      <div class="h-10 px-3 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between text-xs shrink-0 z-10">
+        <!-- Dual Tabs -->
+        <div class="flex items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800">
+          <button id="tab-btn-canvas" class="px-3 py-1 rounded-md text-xs font-medium bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1.5 transition">
+            <i data-lucide="play" class="w-3.5 h-3.5"></i>
+            <span>Live Canvas</span>
+          </button>
+          <button id="tab-btn-code" class="px-3 py-1 rounded-md text-xs font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 flex items-center gap-1.5 transition">
+            <i data-lucide="code-2" class="w-3.5 h-3.5"></i>
+            <span>Source Code</span>
+          </button>
+        </div>
+
+        <!-- Viewport Switcher -->
+        <div id="viewport-switcher" class="flex items-center gap-1 bg-slate-950/80 p-0.5 rounded-lg border border-slate-800">
+          <button data-viewport="desktop" title="Desktop Viewport (100%)" class="viewport-btn active p-1.5 rounded-md text-emerald-400 bg-slate-800">
+            <i data-lucide="monitor" class="w-3.5 h-3.5"></i>
+          </button>
+          <button data-viewport="tablet" title="Tablet Viewport (768px)" class="viewport-btn p-1.5 rounded-md text-slate-400 hover:text-slate-200">
+            <i data-lucide="tablet" class="w-3.5 h-3.5"></i>
+          </button>
+          <button data-viewport="mobile" title="Mobile Viewport (375px)" class="viewport-btn p-1.5 rounded-md text-slate-400 hover:text-slate-200">
+            <i data-lucide="smartphone" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex items-center gap-1.5">
+          <button id="btn-apply-code" title="Apply Code Changes to Canvas" class="px-2.5 py-1 rounded-md bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 flex items-center gap-1 font-medium transition">
+            <i data-lucide="zap" class="w-3.5 h-3.5"></i>
+            <span class="hidden sm:inline">Apply Changes</span>
+          </button>
+          <button id="btn-copy-code" title="Copy Complete HTML Code" class="px-2.5 py-1 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 flex items-center gap-1 transition">
+            <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+            <span class="hidden sm:inline">Copy</span>
+          </button>
+          <button id="btn-download-html" title="Download .html file" class="px-2.5 py-1 rounded-md bg-emerald-600 hover:bg-emerald-500 text-white font-medium flex items-center gap-1 transition shadow-sm">
+            <i data-lucide="download" class="w-3.5 h-3.5"></i>
+            <span class="hidden sm:inline">Save (.html)</span>
+          </button>
+          <button id="btn-popout-canvas" title="Open in New Window" class="p-1.5 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition">
+            <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- MAIN TAB CONTENT AREA -->
+      <div class="flex-1 relative overflow-hidden bg-slate-950 flex flex-col items-center justify-center p-2 sm:p-4">
+        
+        <!-- LIVE CANVAS -->
+        <div id="view-canvas" class="w-full h-full flex flex-col items-center justify-center">
+          <div id="iframe-wrapper" class="device-container w-full h-full relative rounded-xl overflow-hidden border border-slate-800 bg-white shadow-2xl transition-all duration-300">
+            <iframe
+              id="live-canvas-iframe"
+              title="Hamzaad Live Application Preview"
+              sandbox="allow-scripts allow-modals allow-forms allow-same-origin"
+              class="w-full h-full border-0 bg-white"
+            ></iframe>
+          </div>
+        </div>
+
+        <!-- SOURCE CODE -->
+        <div id="view-code" class="w-full h-full hidden flex-col">
+          <div class="flex-1 relative rounded-xl border border-slate-800 overflow-hidden bg-slate-900 flex flex-col">
+            <div class="h-8 px-3 bg-slate-950 border-b border-slate-800 flex items-center justify-between text-[11px] text-slate-400 font-mono">
+              <span class="flex items-center gap-2">
+                <i data-lucide="file-code" class="w-3.5 h-3.5 text-emerald-400"></i>
+                <span>Hamzaad_App_Bundle.html</span>
+              </span>
+              <span id="code-line-info">Ready to edit</span>
+            </div>
+            <textarea
+              id="source-code-editor"
+              spellcheck="false"
+              class="flex-1 w-full p-4 bg-slate-950 font-mono text-xs sm:text-sm text-emerald-300/90 leading-relaxed resize-none focus:outline-none selection:bg-emerald-900/40"
+              placeholder="<!-- Generated Single-File HTML Code will appear here -->"
+            ></textarea>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- PANEL 2 FOOTER -->
+      <footer class="h-8 px-4 bg-slate-900 border-t border-slate-800 flex items-center justify-between text-[11px] text-slate-400 shrink-0 font-mono">
+        <div class="flex items-center gap-2 truncate">
+          <i data-lucide="globe" class="w-3.5 h-3.5 text-emerald-400 shrink-0"></i>
+          <span class="text-slate-500">Title:</span>
+          <span id="footer-app-title" class="text-slate-200 font-medium truncate">Hamzaad Pulse Analytics</span>
+        </div>
+        <div class="flex items-center gap-4 shrink-0">
+          <span class="flex items-center gap-1">
+            <i data-lucide="file-text" class="w-3 h-3 text-slate-500"></i>
+            <span id="footer-file-size">14.8 KB</span>
+          </span>
+          <span class="text-slate-700">|</span>
+          <span class="flex items-center gap-1">
+            <i data-lucide="maximize" class="w-3 h-3 text-slate-500"></i>
+            <span id="footer-viewport-dim">100%</span>
+          </span>
+          <span class="text-slate-700">|</span>
+          <span class="text-emerald-400 flex items-center gap-1">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+            <span>Sandbox Active</span>
+          </span>
+        </div>
+      </footer>
+
+    </section>
+  </div>
+
+  <!-- STARTER BLUEPRINTS MODAL -->
+  <div id="modal-starters" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="w-full max-w-xl bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+      <div class="px-5 py-4 border-b border-slate-800 flex items-center justify-between bg-slate-950/50">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center">
+            <i data-lucide="sparkles" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <h2 class="text-sm font-bold text-white">Hamzaad Starter Blueprints</h2>
+            <p class="text-xs text-slate-400">Click any prompt to synthesize immediately</p>
+          </div>
+        </div>
+        <button id="btn-close-starters" class="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <div class="p-5 grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[60vh] overflow-y-auto">
+        <button class="starter-card text-left p-3.5 rounded-xl bg-slate-950 hover:bg-slate-800/80 border border-slate-800 hover:border-emerald-500/50 transition group"
+          data-prompt="Build a high-performance Enterprise SaaS Analytics Dashboard using Tailwind CSS and Chart.js. Include conversion rate graphs, revenue trajectory, user retention heatmaps, a filterable customer transactions data table, and interactive date-range controls.">
+          <div class="flex items-center gap-2 text-xs font-bold text-slate-200 group-hover:text-emerald-400 mb-1">
+            <i data-lucide="bar-chart-3" class="w-4 h-4 text-emerald-400"></i>
+            <span>SaaS Analytics Hub</span>
+          </div>
+          <p class="text-[11px] text-slate-400 line-clamp-2">Complete KPI monitoring suite with Chart.js visualization and interactive filters.</p>
+        </button>
+
+        <button class="starter-card text-left p-3.5 rounded-xl bg-slate-950 hover:bg-slate-800/80 border border-slate-800 hover:border-indigo-500/50 transition group"
+          data-prompt="Build a full-featured Agile Kanban Board with Tailwind CSS. Include drag-and-drop or column move actions for Backlog, In Progress, Review, and Done. Support adding cards with priority tags (High, Medium, Low), task estimation points, search filter, and localStorage persistence.">
+          <div class="flex items-center gap-2 text-xs font-bold text-slate-200 group-hover:text-indigo-400 mb-1">
+            <i data-lucide="trello" class="w-4 h-4 text-indigo-400"></i>
+            <span>Sprint Kanban Board</span>
+          </div>
+          <p class="text-[11px] text-slate-400 line-clamp-2">Task workflow board with priority tags, status management, and local persistence.</p>
+        </button>
+
+        <button class="starter-card text-left p-3.5 rounded-xl bg-slate-950 hover:bg-slate-800/80 border border-slate-800 hover:border-amber-500/50 transition group"
+          data-prompt="Build a Cyberpunk Retro Space Arcade game in HTML5 Canvas and Tailwind CSS. The player pilots a ship fighting waves of neon alien invaders with laser beams, power-ups, particle explosions, high score tracking, sound effects via Web Audio API synth, and responsive touch/keyboard controls.">
+          <div class="flex items-center gap-2 text-xs font-bold text-slate-200 group-hover:text-amber-400 mb-1">
+            <i data-lucide="gamepad-2" class="w-4 h-4 text-amber-400"></i>
+            <span>Cyberpunk Neon Invaders</span>
+          </div>
+          <p class="text-[11px] text-slate-400 line-clamp-2">Playable canvas game with arcade particles, sound synthesis, and high scores.</p>
+        </button>
+
+        <button class="starter-card text-left p-3.5 rounded-xl bg-slate-950 hover:bg-slate-800/80 border border-slate-800 hover:border-teal-500/50 transition group"
+          data-prompt="Build a Real-Time Cryptocurrency Portfolio Simulator with Tailwind CSS and Chart.js. Include a live price ticker updating every 2 seconds with realistic random walks, portfolio balance allocation donut chart, buy/sell simulation modal, and transaction history.">
+          <div class="flex items-center gap-2 text-xs font-bold text-slate-200 group-hover:text-teal-400 mb-1">
+            <i data-lucide="trending-up" class="w-4 h-4 text-teal-400"></i>
+            <span>Crypto Portfolio Simulator</span>
+          </div>
+          <p class="text-[11px] text-slate-400 line-clamp-2">Real-time ticker simulator with interactive Chart.js donut and line graphs.</p>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST CONTAINER -->
+  <div id="toast-container" class="fixed bottom-10 right-4 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- JAVASCRIPT ENGINE -->
+  <script>
+    const CONFIG = {
+      ACTIVE_CODE_KEY: 'hamzaad_active_code',
+      CHAT_STORAGE_KEY: 'hamzaad_chat_history',
+    };
+
+    const DEFAULT_SEED_APP = `<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-950 text-slate-100">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hamzaad Pulse - Autonomous Engine Workspace</title>
+  <script src="https://cdn.tailwindcss.com"><\/script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"><\/script>
+  <script src="https://unpkg.com/lucide@latest"><\/script>
+</head>
+<body class="h-full flex flex-col bg-slate-950 font-sans p-6 overflow-y-auto">
+  <div class="max-w-6xl mx-auto w-full space-y-6">
+    <header class="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-6 border-b border-slate-800 gap-4">
+      <div class="flex items-center gap-2.5">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+          <i data-lucide="cpu" class="w-5 h-5 text-white"></i>
+        </div>
+        <div>
+          <h1 class="text-xl font-bold tracking-tight text-white">Hamzaad Pulse Control System</h1>
+          <p class="text-xs text-slate-400">Autonomous Application Engine Live Canvas Demo</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+          AI Studio In-built Key Active
+        </span>
+      </div>
+    </header>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="p-4 rounded-xl bg-slate-900 border border-slate-800 shadow">
+        <div class="flex items-center justify-between text-slate-400 text-xs">
+          <span>Total Executions</span>
+          <i data-lucide="zap" class="w-4 h-4 text-amber-400"></i>
+        </div>
+        <p class="text-2xl font-bold text-white mt-2">2,840</p>
+        <span class="text-xs text-emerald-400 font-medium">+24.8% throughput</span>
+      </div>
+      <div class="p-4 rounded-xl bg-slate-900 border border-slate-800 shadow">
+        <div class="flex items-center justify-between text-slate-400 text-xs">
+          <span>Backend Auth</span>
+          <i data-lucide="shield-check" class="w-4 h-4 text-indigo-400"></i>
+        </div>
+        <p class="text-2xl font-bold text-white mt-2">Zero Config</p>
+        <span class="text-xs text-indigo-400 font-medium">In-built Gemini Keys</span>
+      </div>
+      <div class="p-4 rounded-xl bg-slate-900 border border-slate-800 shadow">
+        <div class="flex items-center justify-between text-slate-400 text-xs">
+          <span>Active Model</span>
+          <i data-lucide="layers" class="w-4 h-4 text-teal-400"></i>
+        </div>
+        <p class="text-2xl font-bold text-white mt-2">Gemini 3.8</p>
+        <span class="text-xs text-teal-400 font-medium">Flash Cascading</span>
+      </div>
+      <div class="p-4 rounded-xl bg-slate-900 border border-slate-800 shadow">
+        <div class="flex items-center justify-between text-slate-400 text-xs">
+          <span>Render Sandbox</span>
+          <i data-lucide="gauge" class="w-4 h-4 text-emerald-400"></i>
+        </div>
+        <p class="text-2xl font-bold text-white mt-2">8ms</p>
+        <span class="text-xs text-emerald-400 font-medium">Direct DOM Injection</span>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div class="lg:col-span-2 p-5 rounded-2xl bg-slate-900 border border-slate-800">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-sm font-semibold text-slate-200">Real-time Inference Velocity</h2>
+          <span class="text-xs text-slate-400">Tokens/sec (Simulated)</span>
+        </div>
+        <div class="h-64">
+          <canvas id="pulseChart"></canvas>
+        </div>
+      </div>
+      <div class="p-5 rounded-2xl bg-slate-900 border border-slate-800 flex flex-col justify-between">
+        <div>
+          <h2 class="text-sm font-semibold text-slate-200 mb-3">Studio Directives</h2>
+          <ul class="space-y-2.5 text-xs text-slate-300">
+            <li class="flex items-center gap-2">
+              <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400 shrink-0"></i>
+              <span>Single-File Autonomous HTML</span>
+            </li>
+            <li class="flex items-center gap-2">
+              <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400 shrink-0"></i>
+              <span>Tailwind CSS & Chart.js Pre-Configured</span>
+            </li>
+            <li class="flex items-center gap-2">
+              <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400 shrink-0"></i>
+              <span>Live Bi-Directional Code Sync</span>
+            </li>
+            <li class="flex items-center gap-2">
+              <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400 shrink-0"></i>
+              <span>Device Viewport Sandbox</span>
+            </li>
+          </ul>
+        </div>
+        <button onclick="simulateTick()" class="mt-4 w-full py-2 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold text-xs rounded-xl transition shadow">
+          Trigger Live Data Pulse
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    lucide.createIcons();
+    const ctx = document.getElementById('pulseChart').getContext('2d');
+    const chart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00', '24:00'],
+        datasets: [{
+          label: 'Inference Velocity',
+          data: [65, 82, 110, 145, 120, 168, 190],
+          borderColor: '#10b981',
+          backgroundColor: 'rgba(16, 185, 129, 0.1)',
+          fill: true,
+          tension: 0.4
+        }, {
+          label: 'Failover Headroom',
+          data: [40, 45, 55, 70, 60, 85, 95],
+          borderColor: '#6366f1',
+          borderDash: [5, 5],
+          tension: 0.4
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { labels: { color: '#94a3b8', font: { size: 11 } } }
+        },
+        scales: {
+          x: { grid: { color: 'rgba(51, 65, 85, 0.2)' }, ticks: { color: '#64748b' } },
+          y: { grid: { color: 'rgba(51, 65, 85, 0.2)' }, ticks: { color: '#64748b' } }
+        }
+      }
+    });
+
+    function simulateTick() {
+      const nextVal = Math.floor(Math.random() * 80) + 120;
+      chart.data.datasets[0].data.shift();
+      chart.data.datasets[0].data.push(nextVal);
+      chart.update();
+    }
+  <\/script>
+</body>
+</html>`;
+
+    const AppState = {
+      activeCode: '',
+      isGenerating: false,
+      chatMessages: [
+        {
+          id: 'msg-welcome',
+          role: 'assistant',
+          text: `Welcome to **Hamzaad** — Autonomous AI Application Engine & Live Studio.\n\nAll AI requests are powered directly by **AI Studio In-built Keys** — no manual key setup or vault required!\n\n✨ **What would you like to build?** Choose a starter template or describe any application below.`
+        }
+      ]
+    };
+
+    const DOM = {
+      chatMessages: document.getElementById('chat-messages'),
+      chatForm: document.getElementById('chat-form'),
+      chatInput: document.getElementById('chat-input'),
+      btnSend: document.getElementById('btn-send-message'),
+      btnClearChat: document.getElementById('btn-clear-chat'),
+      conversationStatus: document.getElementById('conversation-status'),
+      synthesisBanner: document.getElementById('synthesis-banner'),
+      synthesisBannerText: document.getElementById('synthesis-banner-text'),
+      
+      tabBtnCanvas: document.getElementById('tab-btn-canvas'),
+      tabBtnCode: document.getElementById('tab-btn-code'),
+      viewCanvas: document.getElementById('view-canvas'),
+      viewCode: document.getElementById('view-code'),
+      liveCanvasIframe: document.getElementById('live-canvas-iframe'),
+      iframeWrapper: document.getElementById('iframe-wrapper'),
+      sourceCodeEditor: document.getElementById('source-code-editor'),
+      
+      viewportBtns: document.querySelectorAll('.viewport-btn'),
+      
+      btnApplyCode: document.getElementById('btn-apply-code'),
+      btnCopyCode: document.getElementById('btn-copy-code'),
+      btnDownloadHtml: document.getElementById('btn-download-html'),
+      btnPopoutCanvas: document.getElementById('btn-popout-canvas'),
+      
+      footerAppTitle: document.getElementById('footer-app-title'),
+      footerFileSize: document.getElementById('footer-file-size'),
+      footerViewportDim: document.getElementById('footer-viewport-dim'),
+      
+      modalStarters: document.getElementById('modal-starters'),
+      btnOpenStarters: document.getElementById('btn-open-starters'),
+      btnCloseStarters: document.getElementById('btn-close-starters'),
+      toastContainer: document.getElementById('toast-container')
+    };
+
+    function initApp() {
+      lucide.createIcons();
+
+      const savedCode = localStorage.getItem(CONFIG.ACTIVE_CODE_KEY);
+      if (savedCode && savedCode.trim().length > 50) {
+        AppState.activeCode = savedCode;
+      } else {
+        AppState.activeCode = DEFAULT_SEED_APP;
+      }
+
+      renderActiveCode();
+      renderChatMessages();
+      setupEventListeners();
+    }
+
+    function renderActiveCode() {
+      const code = AppState.activeCode;
+      DOM.sourceCodeEditor.value = code;
+      DOM.liveCanvasIframe.srcdoc = code;
+
+      let title = 'Hamzaad Application';
+      const titleMatch = code.match(/<title>([^<]+)<\/title>/i);
+      if (titleMatch && titleMatch[1]) {
+        title = titleMatch[1].trim();
+      }
+      DOM.footerAppTitle.textContent = title;
+
+      const bytes = new Blob([code]).size;
+      const kb = (bytes / 1024).toFixed(1);
+      DOM.footerFileSize.textContent = `${kb} KB`;
+
+      try {
+        localStorage.setItem(CONFIG.ACTIVE_CODE_KEY, code);
+      } catch (e) {
+        // ignore
+      }
+    }
+
+    function extractCode(rawResponse) {
+      const regex = /```(?:html)?\s*([\s\S]*?)```/i;
+      const match = rawResponse.match(regex);
+      if (match && match[1] && match[1].includes('<')) {
+        return {
+          code: match[1].trim(),
+          text: rawResponse.replace(regex, '').trim()
+        };
+      }
+      if (rawResponse.trim().startsWith('<!DOCTYPE') || rawResponse.trim().startsWith('<html')) {
+        return {
+          code: rawResponse.trim(),
+          text: 'Application synthesized successfully.'
+        };
+      }
+      return { code: null, text: rawResponse };
+    }
+
+    function renderChatMessages() {
+      DOM.chatMessages.innerHTML = '';
+      
+      AppState.chatMessages.forEach(msg => {
+        const isUser = msg.role === 'user';
+        const msgDiv = document.createElement('div');
+        msgDiv.className = `flex flex-col ${isUser ? 'items-end' : 'items-start'} space-y-1.5`;
+
+        const bubble = document.createElement('div');
+        bubble.className = isUser
+          ? 'max-w-[88%] bg-emerald-600 text-white rounded-2xl rounded-tr-sm px-4 py-2.5 text-xs sm:text-sm shadow-md'
+          : 'max-w-[92%] bg-slate-800/90 text-slate-200 border border-slate-700/80 rounded-2xl rounded-tl-sm px-4 py-3 text-xs sm:text-sm shadow-sm';
+
+        let formattedText = escapeHtml(msg.text || '')
+          .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+          .replace(/\*(.*?)\*/g, '<em>$1</em>')
+          .replace(/`([^`]+)`/g, '<code class="bg-black/40 px-1 py-0.5 rounded text-emerald-300 font-mono text-[11px]">$1</code>')
+          .replace(/\n/g, '<br/>');
+
+        bubble.innerHTML = `<div>${formattedText}</div>`;
+
+        // CODE SUPPRESSION BADGE
+        if (msg.hasGeneratedCode) {
+          const badge = document.createElement('div');
+          badge.className = 'mt-3 pt-2.5 border-t border-slate-700/60 flex items-center justify-between gap-2';
+          badge.innerHTML = `
+            <div class="flex items-center gap-1.5 text-emerald-400 font-medium text-xs">
+              <i data-lucide="sparkles" class="w-4 h-4"></i>
+              <span>✨ [Single-File Application Rendered to Panel 2 Live Canvas]</span>
+            </div>
+            <button class="px-2.5 py-1 text-[11px] rounded bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 transition flex items-center gap-1">
+              <span>View Canvas</span>
+              <i data-lucide="arrow-right" class="w-3 h-3"></i>
+            </button>
+          `;
+          badge.querySelector('button').addEventListener('click', () => {
+            switchTab('canvas');
+          });
+          bubble.appendChild(badge);
+        }
+
+        const meta = document.createElement('span');
+        meta.className = 'text-[10px] text-slate-500 px-1 font-mono';
+        meta.textContent = isUser ? 'You' : (msg.modelUsed ? `Hamzaad (${msg.modelUsed})` : 'Hamzaad Copilot');
+
+        msgDiv.appendChild(bubble);
+        msgDiv.appendChild(meta);
+        DOM.chatMessages.appendChild(msgDiv);
+      });
+
+      lucide.createIcons();
+      DOM.chatMessages.scrollTop = DOM.chatMessages.scrollHeight;
+    }
+
+    function escapeHtml(string) {
+      const entityMap = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+      };
+      return String(string).replace(/[&<>"']/g, s => entityMap[s]);
+    }
+
+    async function executePrompt(promptText) {
+      if (AppState.isGenerating) return;
+
+      AppState.isGenerating = true;
+      DOM.btnSend.disabled = true;
+      DOM.conversationStatus.textContent = 'Synthesizing...';
+      DOM.conversationStatus.className = 'text-[10px] text-amber-400 animate-pulse font-mono';
+      DOM.synthesisBanner.classList.remove('hidden');
+
+      try {
+        const recentHistory = AppState.chatMessages.slice(-4).map(m => ({
+          role: m.role,
+          text: m.text
+        }));
+
+        const res = await fetch('/api/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            prompt: promptText,
+            history: recentHistory,
+            currentCode: AppState.activeCode
+          })
+        });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error || `Server returned ${res.status}`);
+        }
+
+        const data = await res.json();
+        const rawResponse = data.response;
+        const modelUsed = data.modelUsed || 'gemini-3.8-flash';
+
+        const { code, text } = extractCode(rawResponse);
+
+        if (code) {
+          AppState.activeCode = code;
+          renderActiveCode();
+
+          AppState.chatMessages.push({
+            id: 'msg-' + Date.now(),
+            role: 'assistant',
+            text: text || 'Application synthesized successfully and loaded into Panel 2 Live Canvas.',
+            hasGeneratedCode: true,
+            modelUsed: modelUsed
+          });
+          showToast(`Synthesized with ${modelUsed}!`, 'success');
+        } else {
+          AppState.chatMessages.push({
+            id: 'msg-' + Date.now(),
+            role: 'assistant',
+            text: rawResponse,
+            hasGeneratedCode: false,
+            modelUsed: modelUsed
+          });
+        }
+
+      } catch (err) {
+        AppState.chatMessages.push({
+          id: 'err-' + Date.now(),
+          role: 'assistant',
+          text: `⚠️ **Generation Error**: ${err.message}`
+        });
+        showToast(err.message, 'error');
+      } finally {
+        AppState.isGenerating = false;
+        DOM.btnSend.disabled = false;
+        DOM.conversationStatus.textContent = 'Ready';
+        DOM.conversationStatus.className = 'text-[10px] text-emerald-400 font-mono';
+        DOM.synthesisBanner.classList.add('hidden');
+        renderChatMessages();
+      }
+    }
+
+    function switchTab(tab) {
+      if (tab === 'canvas') {
+        DOM.tabBtnCanvas.className = 'px-3 py-1 rounded-md text-xs font-medium bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1.5 transition';
+        DOM.tabBtnCode.className = 'px-3 py-1 rounded-md text-xs font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 flex items-center gap-1.5 transition';
+        DOM.viewCanvas.classList.remove('hidden');
+        DOM.viewCode.classList.add('hidden');
+        DOM.viewCode.classList.remove('flex');
+        DOM.viewportSwitcher.classList.remove('opacity-30', 'pointer-events-none');
+      } else {
+        DOM.tabBtnCode.className = 'px-3 py-1 rounded-md text-xs font-medium bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1.5 transition';
+        DOM.tabBtnCanvas.className = 'px-3 py-1 rounded-md text-xs font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 flex items-center gap-1.5 transition';
+        DOM.viewCanvas.classList.add('hidden');
+        DOM.viewCode.classList.remove('hidden');
+        DOM.viewCode.classList.add('flex');
+        DOM.viewportSwitcher.classList.add('opacity-30', 'pointer-events-none');
+      }
+    }
+
+    function setViewport(mode) {
+      DOM.viewportBtns.forEach(btn => {
+        if (btn.dataset.viewport === mode) {
+          btn.classList.add('active', 'text-emerald-400', 'bg-slate-800');
+          btn.classList.remove('text-slate-400');
+        } else {
+          btn.classList.remove('active', 'text-emerald-400', 'bg-slate-800');
+          btn.classList.add('text-slate-400');
+        }
+      });
+
+      const wrapper = DOM.iframeWrapper;
+      if (mode === 'desktop') {
+        wrapper.style.width = '100%';
+        wrapper.style.maxWidth = '100%';
+        DOM.footerViewportDim.textContent = '100%';
+      } else if (mode === 'tablet') {
+        wrapper.style.width = '768px';
+        wrapper.style.maxWidth = '100%';
+        DOM.footerViewportDim.textContent = '768px (Tablet)';
+      } else if (mode === 'mobile') {
+        wrapper.style.width = '375px';
+        wrapper.style.maxWidth = '100%';
+        DOM.footerViewportDim.textContent = '375px (Mobile)';
+      }
+    }
+
+    function showToast(message, type = 'info') {
+      const toast = document.createElement('div');
+      const colors = {
+        success: 'bg-emerald-950/90 border-emerald-500/50 text-emerald-200',
+        warning: 'bg-amber-950/90 border-amber-500/50 text-amber-200',
+        error: 'bg-red-950/90 border-red-500/50 text-red-200',
+        info: 'bg-slate-900/90 border-slate-700 text-slate-200'
+      };
+
+      toast.className = `px-3.5 py-2.5 rounded-xl border text-xs shadow-xl backdrop-blur flex items-center gap-2 pointer-events-auto transform transition-all duration-300 translate-y-2 opacity-0 ${colors[type] || colors.info}`;
+      const icon = type === 'success' ? 'check-circle' : type === 'warning' ? 'alert-triangle' : 'info';
+      toast.innerHTML = `<i data-lucide="${icon}" class="w-4 h-4 shrink-0"></i><span>${message}</span>`;
+      
+      DOM.toastContainer.appendChild(toast);
+      lucide.createIcons();
+
+      requestAnimationFrame(() => {
+        toast.classList.remove('translate-y-2', 'opacity-0');
+      });
+
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-2');
+        setTimeout(() => toast.remove(), 300);
+      }, 3500);
+    }
+
+    function injectPrompt(text) {
+      DOM.chatInput.value = text;
+      DOM.chatInput.focus();
+    }
+
+    function setupEventListeners() {
+      DOM.chatForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const text = DOM.chatInput.value.trim();
+        if (!text) return;
+
+        AppState.chatMessages.push({
+          id: 'msg-' + Date.now(),
+          role: 'user',
+          text: text
+        });
+
+        DOM.chatInput.value = '';
+        renderChatMessages();
+        executePrompt(text);
+      });
+
+      DOM.chatInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          DOM.chatForm.dispatchEvent(new Event('submit'));
+        }
+      });
+
+      DOM.btnClearChat.addEventListener('click', () => {
+        if (confirm('Clear chat history?')) {
+          AppState.chatMessages = [AppState.chatMessages[0]];
+          renderChatMessages();
+          showToast('Chat history cleared', 'info');
+        }
+      });
+
+      DOM.tabBtnCanvas.addEventListener('click', () => switchTab('canvas'));
+      DOM.tabBtnCode.addEventListener('click', () => switchTab('code'));
+
+      DOM.viewportBtns.forEach(btn => {
+        btn.addEventListener('click', () => setViewport(btn.dataset.viewport));
+      });
+
+      DOM.btnApplyCode.addEventListener('click', () => {
+        AppState.activeCode = DOM.sourceCodeEditor.value;
+        renderActiveCode();
+        switchTab('canvas');
+        showToast('Code changes applied to Live Canvas!', 'success');
+      });
+
+      DOM.btnCopyCode.addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(AppState.activeCode);
+          showToast('Application source code copied to clipboard!', 'success');
+        } catch (e) {
+          showToast('Failed to copy', 'error');
+        }
+      });
+
+      function downloadHtml() {
+        let filename = 'hamzaad-app.html';
+        const titleMatch = AppState.activeCode.match(/<title>([^<]+)<\/title>/i);
+        if (titleMatch && titleMatch[1]) {
+          filename = titleMatch[1].trim().toLowerCase().replace(/[^a-z0-9]+/g, '-') + '.html';
+        }
+        const blob = new Blob([AppState.activeCode], { type: 'text/html;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast(`Saved as ${filename}`, 'success');
+      }
+
+      DOM.btnDownloadHtml.addEventListener('click', downloadHtml);
+      document.getElementById('btn-header-save').addEventListener('click', downloadHtml);
+
+      DOM.btnPopoutCanvas.addEventListener('click', () => {
+        const blob = new Blob([AppState.activeCode], { type: 'text/html;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        window.open(url, '_blank');
+      });
+
+      DOM.btnOpenStarters.addEventListener('click', () => {
+        DOM.modalStarters.classList.remove('hidden');
+      });
+      DOM.btnCloseStarters.addEventListener('click', () => {
+        DOM.modalStarters.classList.add('hidden');
+      });
+
+      document.querySelectorAll('.starter-card').forEach(card => {
+        card.addEventListener('click', () => {
+          const prompt = card.dataset.prompt;
+          DOM.modalStarters.classList.add('hidden');
+          DOM.chatInput.value = prompt;
+          DOM.chatForm.dispatchEvent(new Event('submit'));
+        });
+      });
+
+      window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          DOM.modalStarters.classList.add('hidden');
+        }
+      });
+    }
+
+    window.addEventListener('DOMContentLoaded', initApp);
+  </script>
+</body>
+</html>

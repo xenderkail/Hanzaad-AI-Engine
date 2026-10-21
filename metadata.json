@@ -1,0 +1,6 @@
+{
+  "name": "Hamzaad - Autonomous AI Studio Engine",
+  "description": "Autonomous AI Application Engine and Live Preview Canvas Studio with dynamic model cascading, key vault, and real-time sandbox preview.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
